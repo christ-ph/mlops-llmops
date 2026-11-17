@@ -48,7 +48,7 @@ def register_model(model_uri: str, model_name: str = REGISTERED_MODEL_NAME) -> s
     Accepte une URI complète `models:/...` ou `runs:/.../model`,
     ou un run_id brut (compatibilité) → converti en `runs:/<run_id>/model`.
     """
-    if not (model_uri.startswith("runs:/") or model_uri.startswith("models:/")):
+    if not model_uri.startswith(("runs:/", "models:/")):
         model_uri = f"runs:/{model_uri}/model"
     result = mlflow.register_model(model_uri, model_name)
     return str(result.version)

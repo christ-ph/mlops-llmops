@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Lint et tests (backend)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      # Valeurs jetables, propres à la CI (aucun vrai secret ici)
+      APP_ENV: testing
+      DATABASE_URL: sqlite:///./ci.db
+      SECRET_KEY: ci-secret
+      JWT_SECRET_KEY: ci-jwt-secret
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Installer uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Installer Python (version de .python-version)
+        run: uv python install
+
+      - name: Installer les dépendances (lockfile figé)
+        run: uv sync --frozen
+
+      - name: Lint (ruff)
+        run: uv run ruff check .
+
+      - name: Tests (pytest)
+        run: uv run pytest tests/ -v

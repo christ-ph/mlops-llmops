@@ -6,15 +6,15 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-import pandas as pd  # noqa: E402
-import pytest  # noqa: E402
+import pandas as pd
+import pytest
 
-from mlops.data.ingestion import load_csv, validate_dataframe  # noqa: E402
-from mlops.data.preprocessing import build_preprocessor, split_data  # noqa: E402
-from mlops.datasets.loader import export_breast_cancer_csv  # noqa: E402
-from mlops.pipelines.training_pipeline import run_training_pipeline  # noqa: E402
-from mlops.registry.registry import load_champion_model  # noqa: E402
-from mlops.training.train import build_pipeline  # noqa: E402
+from mlops.data.ingestion import load_csv, validate_dataframe
+from mlops.data.preprocessing import build_preprocessor, split_data
+from mlops.datasets.loader import export_breast_cancer_csv
+from mlops.pipelines.training_pipeline import run_training_pipeline
+from mlops.registry.registry import load_champion_model
+from mlops.training.train import build_pipeline
 
 
 @pytest.fixture(scope="module")
