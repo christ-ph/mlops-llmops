@@ -1,0 +1,61 @@
+
+# MLflow local
+experiments/mlflow.db
+experiments/artifacts/
+mlruns/
+.env
+
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+*$py.class
+*.so
+.Python
+*.egg-info/
+build/
+dist/
+
+# Environnements virtuels
+.venv/
+venv/
+env/
+ENV/
+
+# Bases de données locales / instances
+*.db
+*.sqlite
+*.sqlite3
+instance/
+
+# Secrets / env
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backups / temporaires
+*.bak
+*.tmp
+*.log
+
+# ML / Data volumineux
+*.ipynb_checkpoints/
+data/raw/
+data/processed/
+models/
+*.h5
+*.pkl
+*.pt
+*.onnx
+mlruns/

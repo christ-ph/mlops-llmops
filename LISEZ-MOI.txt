@@ -1,0 +1,8 @@
+Squelette Flask (étape 1). Ne contient PAS pyproject.toml, uv.lock ni
+backend/tests/test_health.py : ils existent déjà chez toi et ne sont pas écrasés.
+Si un fichier de ce zip existe déjà dans ton projet, compare avant de remplacer.
+
+Dépendances (dans backend/) :
+  uv add flask flask-sqlalchemy flask-migrate flask-jwt-extended flask-smorest flask-cors "psycopg[binary]" python-dotenv
+  uv add --dev pytest
+Puis :  cp .env.example .env && uv run pytest -v
