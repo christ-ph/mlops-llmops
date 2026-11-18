@@ -59,3 +59,8 @@ models/
 *.pt
 *.onnx
 mlruns/
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
