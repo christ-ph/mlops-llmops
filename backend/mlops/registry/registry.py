@@ -24,18 +24,23 @@ def configure_mlflow(
 ) -> str:
     """Configure le tracking, crée l'expérience si besoin, retourne son id."""
     prefix = "sqlite:///"
-    if tracking_uri.startswith(prefix):
+    is_local_tracking = tracking_uri.startswith(prefix)
+
+    if is_local_tracking:
         Path(tracking_uri[len(prefix):]).parent.mkdir(parents=True, exist_ok=True)
-    artifact_root = Path(artifact_root).resolve()
-    artifact_root.mkdir(parents=True, exist_ok=True)
+        artifact_root = Path(artifact_root).resolve()
+        artifact_root.mkdir(parents=True, exist_ok=True)
 
     mlflow.set_tracking_uri(tracking_uri)
     client = MlflowClient()
     experiment = client.get_experiment_by_name(experiment_name)
     if experiment is None:
-        experiment_id = client.create_experiment(
-            experiment_name, artifact_location=artifact_root.as_uri()
-        )
+        if is_local_tracking:
+            experiment_id = client.create_experiment(
+                experiment_name, artifact_location=artifact_root.as_uri()
+            )
+        else:
+            experiment_id = client.create_experiment(experiment_name)
     else:
         experiment_id = experiment.experiment_id
     mlflow.set_experiment(experiment_id=experiment_id)

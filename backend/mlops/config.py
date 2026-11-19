@@ -1,6 +1,8 @@
 """Configuration centrale de la couche MLOps (aucune dépendance Flask)."""
 from __future__ import annotations
 
+import os
+
 from pathlib import Path
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
@@ -14,7 +16,10 @@ TARGET_COLUMN = "target"
 # MLflow (backend SQLite local : requis pour le Model Registry)
 PROJECT_ROOT = BACKEND_DIR.parent   # = ai-modelops-platform/
 EXPERIMENTS_DIR = PROJECT_ROOT / "experiments"
-TRACKING_URI = f"sqlite:///{EXPERIMENTS_DIR / 'mlflow.db'}"
+TRACKING_URI = os.environ.get(
+    "MLFLOW_TRACKING_URI",
+    f"sqlite:///{EXPERIMENTS_DIR / 'mlflow.db'}",
+)
 ARTIFACT_ROOT = EXPERIMENTS_DIR / "artifacts"
 EXPERIMENT_NAME = "breast-cancer-classification"
 REGISTERED_MODEL_NAME = "breast-cancer-classifier"

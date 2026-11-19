@@ -1,4 +1,4 @@
-"""Version 1 de l'API."""
+"""Blueprints /api/v1/*."""
 from flask_smorest import Api
 
 

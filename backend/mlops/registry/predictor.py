@@ -1,16 +1,19 @@
-"""Chargement et prédiction du modèle champion (cache en mémoire).
-
-Le modèle champion est chargé une seule fois depuis MLflow (alias `champion`)
-et gardé en mémoire. Les requêtes suivantes réutilisent l'objet via un cache
-thread-safe, ce qui réduit la latence de ~500 ms à ~5 ms par prédiction.
-"""
+"""Chargement et prédiction du modèle champion (cache en mémoire)."""
 from __future__ import annotations
 
 import threading
+import time
 from typing import Any
 
 import pandas as pd
 
+from app.monitoring import (
+    MODEL_LOADED,
+    PREDICTION_BATCH_SIZE,
+    PREDICTION_COUNTER,
+    PREDICTION_DISTRIBUTION,
+    PREDICTION_LATENCY,
+)
 from mlops.config import CHAMPION_ALIAS, REGISTERED_MODEL_NAME, TRACKING_URI
 
 _lock = threading.Lock()
@@ -18,31 +21,28 @@ _cached_model: Any | None = None
 
 
 def _ensure_tracking() -> None:
-    """Configure MLflow tracking (idempotent)."""
     import mlflow
-
     mlflow.set_tracking_uri(TRACKING_URI)
 
 
 def reset_cache() -> None:
-    """Vide le cache (utile pour les tests ou après une promotion)."""
     global _cached_model
     with _lock:
         _cached_model = None
+        MODEL_LOADED.set(0)
 
 
 def get_champion(
     model_name: str = REGISTERED_MODEL_NAME,
     alias: str = CHAMPION_ALIAS,
 ):
-    """Retourne le modèle champion (chargé une fois puis caché)."""
     global _cached_model
     with _lock:
         if _cached_model is None:
             _ensure_tracking()
             from mlops.registry.registry import load_champion_model
-
             _cached_model = load_champion_model(model_name, alias)
+            MODEL_LOADED.set(1)
     return _cached_model
 
 
@@ -50,7 +50,6 @@ def get_champion_metadata(
     model_name: str = REGISTERED_MODEL_NAME,
     alias: str = CHAMPION_ALIAS,
 ) -> dict[str, Any]:
-    """Métadonnées publiques du champion (nom, alias, version, métriques, features)."""
     _ensure_tracking()
     from mlflow import MlflowClient
     from mlflow.models import Model
@@ -75,23 +74,28 @@ def get_champion_metadata(
 
 
 def _extract_raw_model(model: Any) -> Any:
-    """Déballe le wrapper MLflow pyfunc pour atteindre le modèle sklearn sous-jacent."""
     return getattr(model, "_model_impl", model)
 
 
 def predict_records(records: list[dict[str, Any]]) -> dict[str, Any]:
-    """Prédit sur une liste de dicts (features brutes).
-
-    Retourne :
-      - ``predictions`` : liste d'entiers (0/1 pour une classification binaire)
-      - ``probabilities`` : liste de listes (une ligne par record), si le modèle
-        expose ``predict_proba``.
-    """
+    """Prédit sur une liste de dicts (features brutes) avec instrumentation Prometheus."""
+    model_name = REGISTERED_MODEL_NAME
     model = get_champion()
-    df = pd.DataFrame(records)
-    predictions = model.predict(df)
 
-    result: dict[str, Any] = {"predictions": [int(p) for p in predictions]}
+    df = pd.DataFrame(records)
+    PREDICTION_BATCH_SIZE.observe(len(df))
+
+    start = time.perf_counter()
+    predictions = model.predict(df)
+    elapsed = time.perf_counter() - start
+    PREDICTION_LATENCY.labels(model_name=model_name).observe(elapsed)
+
+    pred_list = [int(p) for p in predictions]
+    for p in pred_list:
+        PREDICTION_COUNTER.labels(model_name=model_name, model_version="champion").inc()
+        PREDICTION_DISTRIBUTION.labels(model_name=model_name, predicted_class=str(p)).inc()
+
+    result: dict[str, Any] = {"predictions": pred_list}
 
     raw = _extract_raw_model(model)
     if hasattr(raw, "predict_proba"):
